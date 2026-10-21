@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pulse Code Modulation — Visual Guide</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: #0f172a;
+    color: #e2e8f0;
+    min-height: 100vh;
+    padding: 24px;
+  }
+  h1 {
+    text-align: center;
+    font-size: 2rem;
+    color: #38bdf8;
+    margin-bottom: 8px;
+  }
+  .subtitle {
+    text-align: center;
+    color: #94a3b8;
+    margin-bottom: 32px;
+    font-size: 1rem;
+  }
+  .steps {
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+  .step-card {
+    background: #1e293b;
+    border-radius: 16px;
+    padding: 24px;
+    border: 1px solid #334155;
+  }
+  .step-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .step-num {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: bold; font-size: 1.1rem;
+    flex-shrink: 0;
+  }
+  .step-title { font-size: 1.25rem; font-weight: 600; }
+  .step-desc { color: #94a3b8; font-size: 0.9rem; margin-bottom: 16px; line-height: 1.6; }
+  canvas {
+    width: 100%;
+    background: #0f172a;
+    border-radius: 10px;
+    border: 1px solid #334155;
+    display: block;
+  }
+  .legend {
+    display: flex; flex-wrap: wrap; gap: 16px;
+    margin-top: 12px;
+  }
+  .legend-item {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 0.82rem; color: #94a3b8;
+  }
+  .legend-dot {
+    width: 14px; height: 4px; border-radius: 2px;
+  }
+  .binary-grid {
+    display: flex; gap: 8px; flex-wrap: wrap;
+    margin-top: 12px;
+  }
+  .bit-cell {
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    padding: 10px 14px;
+    text-align: center;
+    min-width: 80px;
+    transition: transform 0.2s;
+  }
+  .bit-cell:hover { transform: scale(1.05); border-color: #38bdf8; }
+  .bit-cell .sample-val { color: #38bdf8; font-size: 0.75rem; }
+  .bit-cell .quant-val { color: #f59e0b; font-size: 0.85rem; font-weight: bold; }
+  .bit-cell .binary-val { color: #4ade80; font-family: monospace; font-size: 1rem; letter-spacing: 2px; }
+  .arrow-section {
+    display: flex; align-items: center; justify-content: center;
+    gap: 10px; margin: 4px 0;
+    font-size: 0.75rem; color: #64748b;
+  }
+  .controls {
+    display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap;
+    align-items: center;
+  }
+  label { font-size: 0.85rem; color: #94a3b8; }
+  input[type=range] {
+    accent-color: #38bdf8;
+    cursor: pointer;
+  }
+  .value-badge {
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 6px;
+    padding: 2px 10px;
+    font-size: 0.85rem;
+    color: #38bdf8;
+    font-weight: bold;
+    min-width: 40px;
+    text-align: center;
+  }
+  .summary-box {
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 10px;
+    padding: 16px;
+    margin-top: 12px;
+    display: flex; gap: 24px; flex-wrap: wrap;
+  }
+  .summary-stat { text-align: center; }
+  .summary-stat .num { font-size: 1.5rem; font-weight: bold; color: #38bdf8; }
+  .summary-stat .lbl { font-size: 0.75rem; color: #64748b; margin-top: 2px; }
+  .info-box {
+    background: #172033;
+    border-left: 3px solid #38bdf8;
+    border-radius: 0 8px 8px 0;
+    padding: 12px 16px;
+    margin-top: 12px;
+    font-size: 0.85rem;
+    line-height: 1.7;
+    color: #cbd5e1;
+  }
+  .info-box strong { color: #38bdf8; }
+</style>
+</head>
+<body>
+
+<h1>📡 Pulse Code Modulation</h1>
+<p class="subtitle">How analog sound becomes digital data — step by step</p>
+
+<div class="steps">
+
+  <!-- STEP 0: Analog Signal -->
+  <div class="step-card">
+    <div class="step-header">
+      <div class="step-num" style="background:#1e3a5f;color:#38bdf8;">0</div>
+      <div class="step-title" style="color:#38bdf8;">The Original Analog Signal</div>
+    </div>
+    <p class="step-desc">
+      Real-world sounds (voice, music) are <strong style="color:#e2e8f0">continuous waves</strong> — they can have
+      any value at any instant. This is what a microphone captures.
+    </p>
+    <canvas id="c0" height="130"></canvas>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#38bdf8"></div> Analog waveform (continuous)</div>
+    </div>
+    <div class="info-box">
+      <strong>Problem:</strong> Computers can't store "any value at any instant" — they need discrete numbers.
+      That's exactly what PCM solves.
+    </div>
+  </div>
+
+  <!-- STEP 1: Sampling -->
+  <div class="step-card">
+    <div class="step-header">
+      <div class="step-num" style="background:#1a3a1a;color:#4ade80;">1</div>
+      <div class="step-title" style="color:#4ade80;">Step 1 — Sampling</div>
+    </div>
+    <p class="step-desc">
+      We "take a snapshot" of the wave's height at regular time intervals.
+      The number of snapshots per second is the <strong style="color:#e2e8f0">sample rate</strong>.
+    </p>
+    <div class="controls">
+      <label>Sample Rate:</label>
+      <input type="range" id="sampleRate" min="4" max="20" value="8" style="width:140px">
+      <span class="value-badge" id="srVal">8</span>
+      <span style="font-size:0.82rem;color:#64748b;">samples/sec (drag to change)</span>
+    </div>
+    <canvas id="c1" height="150"></canvas>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#38bdf8"></div> Analog wave</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#4ade80"></div> Sample points</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#4ade8044;height:18px;width:3px;border-radius:1px"></div> Sample moments</div>
+    </div>
+    <div class="info-box">
+      <strong>Nyquist Rule:</strong> To capture a sound accurately, sample at least
+      <strong>2× its highest frequency</strong>. Human hearing tops out at ~20 kHz,
+      so CDs use <strong>44,100 samples/sec</strong> (44.1 kHz).
+      Try dragging the slider above — fewer samples = less accurate reconstruction.
+    </div>
+  </div>
+
+  <!-- STEP 2: Quantization -->
+  <div class="step-card">
+    <div class="step-header">
+      <div class="step-num" style="background:#3a1a1a;color:#f87171;">2</div>
+      <div class="step-title" style="color:#f87171;">Step 2 — Quantization</div>
+    </div>
+    <p class="step-desc">
+      Each sample is rounded to the nearest level on a fixed grid. The number of levels
+      depends on <strong style="color:#e2e8f0">bit depth</strong>. More bits = more levels = more accurate.
+    </p>
+    <div class="controls">
+      <label>Bit Depth:</label>
+      <input type="range" id="bitDepth" min="2" max="5" value="3" style="width:120px">
+      <span class="value-badge" id="bdVal">3-bit</span>
+      <span style="font-size:0.82rem;color:#64748b;">= <span id="levelsVal">8</span> levels</span>
+    </div>
+    <canvas id="c2" height="170"></canvas>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#38bdf8"></div> Analog wave</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#f87171"></div> Quantized (rounded) value</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#f87171; opacity:0.3"></div> Quantization error</div>
+    </div>
+    <div class="info-box">
+      <strong>Quantization Error</strong> is the gap between the real value and the rounded value —
+      it sounds like faint background hiss. More bits = smaller error = cleaner audio.<br>
+      CD audio uses <strong>16-bit</strong> (65,536 levels). Studio recordings use <strong>24-bit</strong>.
+    </div>
+  </div>
+
+  <!-- STEP 3: Encoding -->
+  <div class="step-card">
+    <div class="step-header">
+      <div class="step-num" style="background:#3a2a00;color:#f59e0b;">3</div>
+      <div class="step-title" style="color:#f59e0b;">Step 3 — Encoding (Quantized Level → Binary Number)</div>
+    </div>
+    <p class="step-desc">
+      After quantization we have a <strong style="color:#f87171">level number</strong> (e.g. "level 5 out of 8").
+      Encoding simply converts that integer to binary. Each sample gets the same fixed number of bits (= bit depth).
+      Click any sample below to see exactly how its level maps to bits.
+    </p>
+
+    <!-- Bridge: level ladder + binary conversion side by side -->
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px">
+      <canvas id="c3_ladder" height="220" style="flex:1;min-width:160px"></canvas>
+      <canvas id="c3_encode" height="220" style="flex:2;min-width:240px"></canvas>
+    </div>
+
+    <!-- Bit stream -->
+    <div style="background:#0f172a;border:1px solid #334155;border-radius:8px;padding:12px;margin-bottom:12px">
+      <div style="font-size:0.8rem;color:#64748b;margin-bottom:8px">
+        Full bit stream — every sample's bits back-to-back (this is what gets written to disk / sent over the wire):
+      </div>
+      <canvas id="c3_stream" height="52"></canvas>
+    </div>
+
+    <!-- Per-sample cards -->
+    <div style="font-size:0.8rem;color:#94a3b8;margin-bottom:8px">
+      Click a sample card to highlight it in the diagrams above:
+    </div>
+    <div class="binary-grid" id="binaryGrid"></div>
+    <div class="info-box" style="margin-top:16px">
+      <strong>Why binary?</strong> Computers store everything as 0s and 1s (voltage off/on).
+      A 3-bit number needs 3 wires / storage cells. A 16-bit sample needs 16.
+      The bit stream is exactly what lives inside a .wav file — no compression, no tricks.
+    </div>
+  </div>
+
+  <!-- STEP 4: Summary pipeline -->
+  <div class="step-card" style="border-color:#38bdf8">
+    <div class="step-header">
+      <div class="step-num" style="background:#0e3a4a;color:#38bdf8;">✓</div>
+      <div class="step-title" style="color:#38bdf8;">The Full PCM Pipeline</div>
+    </div>
+    <canvas id="c4" height="160"></canvas>
+    <div class="summary-box">
+      <div class="summary-stat">
+        <div class="num" id="s_sr">8</div>
+        <div class="lbl">Sample Rate (Hz)</div>
+      </div>
+      <div class="summary-stat">
+        <div class="num" id="s_bd">3</div>
+        <div class="lbl">Bit Depth</div>
+      </div>
+      <div class="summary-stat">
+        <div class="num" id="s_bps">24</div>
+        <div class="lbl">Bits per second</div>
+      </div>
+      <div class="summary-stat">
+        <div class="num" id="s_lv">8</div>
+        <div class="lbl">Quantization Levels</div>
+      </div>
+    </div>
+    <div class="info-box" style="margin-top:12px">
+      <strong>Real CD audio:</strong> 44,100 Hz × 16 bits × 2 channels = <strong>1,411,200 bits/sec</strong> (~1.4 Mbps).
+      MP3 compresses this same data down to ~128 kbps — that's the tradeoff between quality and file size.
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ─── Shared state ────────────────────────────────────────────────
+let sampleRate = 8;
+let bitDepth = 3;
+
+const W = () => document.querySelector('canvas').offsetWidth;
+
+// Analog wave function
+function wave(t) {
+  return 0.55 * Math.sin(2 * Math.PI * t) + 0.25 * Math.sin(4 * Math.PI * t + 0.5) + 0.1 * Math.sin(8 * Math.PI * t);
+}
+
+// Map wave value [-1,1] to canvas y
+function toY(v, h, pad=18) {
+  return pad + (1 - (v + 1) / 2) * (h - pad * 2);
+}
+
+// Quantize value to n-bit grid
+function quantize(v, bits) {
+  const levels = Math.pow(2, bits);
+  const step = 2 / levels;
+  const idx = Math.min(Math.floor((v + 1) / step), levels - 1);
+  return -1 + idx * step + step / 2;
+}
+
+function getBinaryStr(v, bits) {
+  const levels = Math.pow(2, bits);
+  const step = 2 / levels;
+  const idx = Math.min(Math.floor((v + 1) / step), levels - 1);
+  return idx.toString(2).padStart(bits, '0');
+}
+
+function initCanvas(id) {
+  const canvas = document.getElementById(id);
+  canvas.width = canvas.parentElement.clientWidth - 48;
+  return canvas.getContext('2d');
+}
+
+// ─── Draw functions ──────────────────────────────────────────────
+
+function drawCenterLine(ctx, W, H, pad=18) {
+  const midY = toY(0, H, pad);
+  // Dashed center line
+  ctx.save();
+  ctx.setLineDash([6, 5]);
+  ctx.strokeStyle = 'rgba(251,191,36,0.7)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(0, midY); ctx.lineTo(W, midY); ctx.stroke();
+  ctx.restore();
+  // "0 (silence)" label on the left
+  ctx.fillStyle = 'rgba(251,191,36,0.9)';
+  ctx.font = 'bold 11px system-ui';
+  ctx.fillText('0', 6, midY - 5);
+  ctx.font = '10px system-ui';
+  ctx.fillStyle = 'rgba(251,191,36,0.6)';
+  ctx.fillText('(silence / center)', 18, midY - 5);
+  // +1 and -1 axis labels
+  ctx.fillStyle = '#475569'; ctx.font = '10px system-ui';
+  ctx.fillText('+1', 6, pad + 4);
+  ctx.fillText('−1', 6, H - pad + 10);
+}
+
+function drawStep0() {
+  const ctx = initCanvas('c0');
+  const W = ctx.canvas.width, H = ctx.canvas.height;
+  ctx.clearRect(0,0,W,H);
+
+  // Grid
+  ctx.strokeStyle = '#1e293b';
+  ctx.lineWidth = 1;
+  for(let y = 0; y < H; y += H/4) {
+    ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke();
+  }
+
+  // Center line
+  drawCenterLine(ctx, W, H);
+
+  // Analog wave (drawn after center line so it sits on top)
+  ctx.beginPath();
+  ctx.strokeStyle = '#38bdf8';
+  ctx.lineWidth = 2.5;
+  for(let x = 0; x <= W; x++) {
+    const t = x / W;
+    const y = toY(wave(t), H);
+    x === 0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+  }
+  ctx.stroke();
+
+  // Labels
+  ctx.fillStyle = '#64748b'; ctx.font = '11px system-ui';
+  ctx.fillText('Amplitude', 8, 14);
+  ctx.fillText('Time →', W-55, H-5);
+  ctx.fillStyle = '#38bdf8'; ctx.font = 'bold 11px system-ui';
+  ctx.fillText('Continuous analog wave', W/2-60, 18);
+}
+
+function drawStep1() {
+  const ctx = initCanvas('c1');
+  const W = ctx.canvas.width, H = ctx.canvas.height;
+  ctx.clearRect(0,0,W,H);
+  const N = sampleRate;
+
+  // Grid lines
+  ctx.strokeStyle = '#1a2740';
+  ctx.lineWidth = 1;
+  for(let y = 0; y < H; y += H/6) {
+    ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke();
+  }
+
+  // Sample moment vertical lines
+  for(let i = 0; i <= N; i++) {
+    const x = (i / N) * W;
+    ctx.strokeStyle = 'rgba(74,222,128,0.12)';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke();
+  }
+
+  // Center line
+  drawCenterLine(ctx, W, H);
+
+  // Analog wave
+  ctx.beginPath();
+  ctx.strokeStyle = '#38bdf8';
+  ctx.lineWidth = 2;
+  for(let x = 0; x <= W; x++) {
+    const t = x / W;
+    const y = toY(wave(t), H);
+    x === 0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+  }
+  ctx.stroke();
+
+  // Sample points + stems
+  for(let i = 0; i <= N; i++) {
+    const t = i / N;
+    const x = t * W;
+    const v = wave(t);
+    const y = toY(v, H);
+    const midY = toY(0, H);
+
+    ctx.strokeStyle = 'rgba(74,222,128,0.5)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(x, midY); ctx.lineTo(x, y); ctx.stroke();
+
+    ctx.fillStyle = '#4ade80';
+    ctx.beginPath(); ctx.arc(x, y, 5, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#0f172a';
+    ctx.beginPath(); ctx.arc(x, y, 2.5, 0, Math.PI*2); ctx.fill();
+  }
+
+  // Labels
+  ctx.fillStyle = '#64748b'; ctx.font = '11px system-ui';
+  ctx.fillText(`${N} sample points`, 8, 14);
+  ctx.fillStyle = '#4ade80'; ctx.font = 'bold 11px system-ui';
+  ctx.fillText('↕ sample', 8, H-8);
+}
+
+function drawStep2() {
+  const ctx = initCanvas('c2');
+  const W = ctx.canvas.width, H = ctx.canvas.height;
+  ctx.clearRect(0,0,W,H);
+  const N = sampleRate;
+  const bits = bitDepth;
+  const levels = Math.pow(2, bits);
+
+  // Quantization grid lines
+  for(let i = 0; i <= levels; i++) {
+    const v = -1 + i * (2 / levels);
+    const y = toY(v, H);
+    ctx.strokeStyle = i % 2 === 0 ? '#1e2d45' : '#182030';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke();
+    if(i < levels) {
+      ctx.fillStyle = '#334155';
+      ctx.font = '9px monospace';
+      ctx.fillText(i.toString(2).padStart(bits,'0'), W-bits*7-4, toY(-1 + (i+0.5)*(2/levels), H) + 3);
+    }
+  }
+
+  // Center line
+  drawCenterLine(ctx, W, H);
+
+  // Analog wave
+  ctx.beginPath();
+  ctx.strokeStyle = 'rgba(56,189,248,0.4)';
+  ctx.lineWidth = 2;
+  for(let x = 0; x <= W; x++) {
+    const t = x / W;
+    const y = toY(wave(t), H);
+    x === 0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+  }
+  ctx.stroke();
+
+  // For each sample: draw error bar + quantized point
+  for(let i = 0; i <= N; i++) {
+    const t = i / N;
+    const x = t * W;
+    const v = wave(t);
+    const qv = quantize(v, bits);
+    const y = toY(v, H);
+    const qy = toY(qv, H);
+
+    // Error bar
+    ctx.strokeStyle = 'rgba(248,113,113,0.6)';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, qy); ctx.stroke();
+
+    // Quantized point
+    ctx.fillStyle = '#f87171';
+    ctx.beginPath(); ctx.arc(x, qy, 5, 0, Math.PI*2); ctx.fill();
+
+    // Actual point
+    ctx.fillStyle = 'rgba(56,189,248,0.8)';
+    ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI*2); ctx.fill();
+  }
+
+  ctx.fillStyle = '#64748b'; ctx.font = '11px system-ui';
+  ctx.fillText(`${levels} quantization levels (${bits}-bit)`, 8, 14);
+  ctx.fillStyle = '#f87171'; ctx.font = '10px system-ui';
+  ctx.fillText('← error', W/2+30, H-8);
+}
+
+let selectedSample = 0;
+
+function getLevelIndex(v, bits) {
+  const levels = Math.pow(2, bits);
+  const step = 2 / levels;
+  return Math.min(Math.floor((v + 1) / step), levels - 1);
+}
+
+// Level ladder: shows all quantization levels with their binary codes,
+// highlights the selected sample's level
+function drawLadder() {
+  const canvas = document.getElementById('c3_ladder');
+  canvas.width = canvas.parentElement ? Math.max(canvas.parentElement.clientWidth * 0.28, 160) : 180;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0,0,W,H);
+
+  const bits = bitDepth;
+  const levels = Math.pow(2, bits);
+  const t = selectedSample / sampleRate;
+  const v = wave(t);
+  const selIdx = getLevelIndex(v, bits);
+
+  const padT = 24, padB = 10;
+  const usableH = H - padT - padB;
+  const rowH = usableH / levels;
+
+  // Title
+  ctx.fillStyle = '#64748b'; ctx.font = '10px system-ui';
+  ctx.textAlign = 'center';
+  ctx.fillText('Level Ladder', W/2, 14);
+  ctx.textAlign = 'left';
+
+  for(let i = levels - 1; i >= 0; i--) {
+    // levels drawn top=highest to bottom=lowest
+    const drawIdx = levels - 1 - i;
+    const y = padT + drawIdx * rowH;
+    const bin = i.toString(2).padStart(bits, '0');
+    const isSelected = (i === selIdx);
+
+    // Row background
+    ctx.fillStyle = isSelected ? 'rgba(245,158,11,0.2)' : (i % 2 === 0 ? '#151f2e' : '#111827');
+    ctx.fillRect(0, y, W, rowH);
+
+    // Left bar (level colour)
+    ctx.fillStyle = isSelected ? '#f59e0b' : '#334155';
+    ctx.fillRect(0, y + 2, 4, rowH - 4);
+
+    // Level number
+    ctx.fillStyle = isSelected ? '#f59e0b' : '#475569';
+    ctx.font = isSelected ? 'bold 11px monospace' : '10px monospace';
+    ctx.fillText(`L${i}`, 8, y + rowH/2 + 4);
+
+    // Binary code — each bit a different mini-badge
+    const binX = W - bits * 16 - 6;
+    for(let b = 0; b < bits; b++) {
+      const bx = binX + b * 16;
+      const digit = bin[b];
+      ctx.fillStyle = digit === '1'
+        ? (isSelected ? '#f59e0b' : '#4ade80')
+        : 'transparent';
+      ctx.strokeStyle = digit === '1'
+        ? (isSelected ? '#f59e0b' : '#4ade80')
+        : '#334155';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.roundRect(bx, y + rowH/2 - 7, 13, 13, 2);
+      ctx.fill(); ctx.stroke();
+      ctx.fillStyle = digit === '1' ? '#0f172a' : '#475569';
+      ctx.font = 'bold 9px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(digit, bx + 6.5, y + rowH/2 + 4);
+      ctx.textAlign = 'left';
+    }
+
+    // Arrow for selected
+    if(isSelected) {
+      ctx.fillStyle = '#f59e0b';
+      ctx.font = 'bold 11px system-ui';
+      ctx.textAlign = 'right';
+      ctx.fillText('◀', W - bits*16 - 10, y + rowH/2 + 4);
+      ctx.textAlign = 'left';
+    }
+  }
+
+  // Bottom label
+  ctx.fillStyle = '#475569'; ctx.font = '9px system-ui';
+  ctx.textAlign = 'center';
+  ctx.fillText(`${levels} levels · ${bits}-bit`, W/2, H - 2);
+  ctx.textAlign = 'left';
+}
+
+// Encoding diagram: shows exactly how level index → binary step by step
+function drawEncoding() {
+  const canvas = document.getElementById('c3_encode');
+  canvas.width = canvas.parentElement ? Math.max(canvas.parentElement.clientWidth * 0.65, 240) : 320;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0,0,W,H);
+
+  const bits = bitDepth;
+  const t = selectedSample / sampleRate;
+  const v = wave(t);
+  const qv = quantize(v, bits);
+  const idx = getLevelIndex(v, bits);
+  const bin = idx.toString(2).padStart(bits, '0');
+
+  // ── Row 1: analog value ──
+  let ry = 28;
+  ctx.fillStyle = '#38bdf8'; ctx.font = 'bold 12px system-ui';
+  ctx.fillText(`Sample ${selectedSample}`, 12, ry - 10);
+  drawBox(ctx, 12, ry, W - 24, 32, '#38bdf8', `Analog value: ${v.toFixed(3)}`);
+
+  // Arrow
+  ry += 32; drawArrow(ctx, W/2, ry, W/2, ry + 14, '#94a3b8', 'round to nearest level');
+  ry += 22;
+
+  // ── Row 2: quantized level ──
+  drawBox(ctx, 12, ry, W - 24, 32, '#f87171', `Quantized to: ${qv.toFixed(3)}   →   Level index: ${idx}`);
+  ry += 32; drawArrow(ctx, W/2, ry, W/2, ry + 14, '#94a3b8', `convert ${idx} to ${bits}-bit binary`);
+  ry += 22;
+
+  // ── Row 3: binary breakdown ──
+  const bw = Math.min((W - 48) / bits, 52);
+  const totalBW = bw * bits;
+  const bStartX = (W - totalBW) / 2;
+
+  // Power-of-2 header
+  ctx.fillStyle = '#64748b'; ctx.font = '9px monospace'; ctx.textAlign = 'center';
+  for(let b = 0; b < bits; b++) {
+    const exp = bits - 1 - b;
+    ctx.fillText(`2^${exp}=${Math.pow(2,exp)}`, bStartX + b*bw + bw/2, ry + 4);
+  }
+  ry += 10;
+
+  for(let b = 0; b < bits; b++) {
+    const digit = bin[b];
+    const bx = bStartX + b * bw;
+    ctx.fillStyle = digit === '1' ? 'rgba(245,158,11,0.2)' : '#0f172a';
+    ctx.strokeStyle = digit === '1' ? '#f59e0b' : '#334155';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.roundRect(bx + 2, ry, bw - 4, 36, 6); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = digit === '1' ? '#f59e0b' : '#475569';
+    ctx.font = `bold ${Math.min(bw - 8, 22)}px monospace`;
+    ctx.fillText(digit, bx + bw/2, ry + 25);
+  }
+  ctx.textAlign = 'left';
+  ry += 36;
+
+  // Contribution sum
+  ry += 8;
+  let parts = [];
+  for(let b = 0; b < bits; b++) {
+    const exp = bits - 1 - b;
+    if(bin[b] === '1') parts.push(`${Math.pow(2,exp)}`);
+  }
+  const eq = parts.length ? parts.join(' + ') + ` = ${idx}` : `0 = ${idx}`;
+  ctx.fillStyle = '#f59e0b'; ctx.font = '11px monospace'; ctx.textAlign = 'center';
+  ctx.fillText(eq, W/2, ry);
+
+  ry += 18;
+  ctx.fillStyle = '#64748b'; ctx.font = '10px system-ui';
+  ctx.fillText(`binary "${bin}" = decimal ${idx}`, W/2, ry);
+  ctx.textAlign = 'left';
+}
+
+function drawBox(ctx, x, y, w, h, color, label) {
+  ctx.fillStyle = color + '20';
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.roundRect(x, y, w, h, 6); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = color;
+  ctx.font = '11px system-ui'; ctx.textAlign = 'center';
+  ctx.fillText(label, x + w/2, y + h/2 + 4);
+  ctx.textAlign = 'left';
+}
+
+function drawArrow(ctx, x1, y1, x2, y2, color, label) {
+  ctx.strokeStyle = color; ctx.lineWidth = 1;
+  ctx.setLineDash([3,3]);
+  ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+  ctx.setLineDash([]);
+  // arrowhead
+  ctx.fillStyle = color;
+  ctx.beginPath(); ctx.moveTo(x2, y2); ctx.lineTo(x2-4, y2-6); ctx.lineTo(x2+4, y2-6); ctx.closePath(); ctx.fill();
+  if(label) {
+    ctx.fillStyle = '#475569'; ctx.font = '9px system-ui'; ctx.textAlign = 'center';
+    ctx.fillText(label, x1 + (x2-x1)/2 + 18, y1 + (y2-y1)/2 + 4);
+    ctx.textAlign = 'left';
+  }
+}
+
+// Bit stream strip
+function drawStream() {
+  const canvas = document.getElementById('c3_stream');
+  canvas.width = canvas.parentElement ? canvas.parentElement.clientWidth - 24 : 600;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0,0,W,H);
+
+  const N = sampleRate;
+  const bits = bitDepth;
+  const samples = [];
+  for(let i = 0; i <= N; i++) {
+    samples.push(getBinaryStr(wave(i / N), bits));
+  }
+  const allBits = samples.join('');
+  const totalBits = allBits.length;
+  const bw = Math.min((W - 8) / totalBits, 24);
+  const startX = 4;
+
+  const colors = ['#4ade80','#38bdf8','#f59e0b','#f87171','#a78bfa','#34d399','#fb923c','#e879f9'];
+
+  for(let i = 0; i < totalBits; i++) {
+    const bit = allBits[i];
+    const sIdx = Math.floor(i / bits);
+    const col = sIdx === selectedSample ? '#f59e0b' : colors[sIdx % colors.length];
+    const x = startX + i * bw;
+    const isSelGroup = (sIdx === selectedSample);
+
+    ctx.fillStyle = bit === '1' ? col + (isSelGroup ? 'ff' : '99') : 'transparent';
+    ctx.strokeStyle = col + (isSelGroup ? 'ff' : '55');
+    ctx.lineWidth = isSelGroup ? 1.5 : 1;
+    ctx.beginPath(); ctx.roundRect(x + 1, 8, bw - 2, H - 16, 2); ctx.fill(); ctx.stroke();
+
+    if(bw >= 12) {
+      ctx.fillStyle = bit === '1' ? '#0f172a' : (col + (isSelGroup ? 'cc' : '66'));
+      ctx.font = `bold ${Math.min(bw-4,11)}px monospace`;
+      ctx.textAlign = 'center';
+      ctx.fillText(bit, x + bw/2, H/2 + 4);
+      ctx.textAlign = 'left';
+    }
+  }
+
+  // Bracket under selected group
+  const selStart = startX + selectedSample * bits * bw;
+  const selEnd = selStart + bits * bw;
+  ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(selStart + 1, H - 4);
+  ctx.lineTo(selEnd - 1, H - 4);
+  ctx.stroke();
+  ctx.fillStyle = '#f59e0b'; ctx.font = '8px monospace'; ctx.textAlign = 'center';
+  ctx.fillText(`S${selectedSample}`, (selStart + selEnd) / 2, H);
+  ctx.textAlign = 'left';
+
+  // Separators between samples
+  for(let i = 1; i <= N; i++) {
+    const x = startX + i * bits * bw;
+    ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(x, 6); ctx.lineTo(x, H - 6); ctx.stroke();
+  }
+}
+
+function drawStep3() {
+  drawLadder();
+  drawEncoding();
+  drawStream();
+}
+
+function drawPipeline() {
+  const ctx = initCanvas('c4');
+  const W = ctx.canvas.width, H = ctx.canvas.height;
+  ctx.clearRect(0,0,W,H);
+
+  const stages = [
+    {
+      color: '#38bdf8',
+      title: '① Analog',
+      line1: 'Continuous wave',
+      line2: 'any value, any time',
+      icon: '〜',
+    },
+    {
+      color: '#4ade80',
+      title: '② Sample',
+      line1: `Measure ${sampleRate}× /sec`,
+      line2: 'snapshot of height',
+      icon: '·',
+    },
+    {
+      color: '#f87171',
+      title: '③ Quantize',
+      line1: `Round to ${Math.pow(2,bitDepth)} levels`,
+      line2: 'nearest rung on ladder',
+      icon: '≈',
+    },
+    {
+      color: '#f59e0b',
+      title: '④ Encode',
+      line1: `Level → ${bitDepth}-bit binary`,
+      line2: 'integer → 0s and 1s',
+      icon: '01',
+    },
+    {
+      color: '#a78bfa',
+      title: '⑤ Digital',
+      line1: 'Bit stream',
+      line2: 'store / transmit / play',
+      icon: '💾',
+    },
+  ];
+
+  const pad = 8;
+  const sw = (W - pad * 2) / stages.length;
+  const boxH = 110;
+  const boxY = (H - boxH) / 2;
+  const arrowY = boxY + boxH / 2;
+
+  stages.forEach((s, i) => {
+    const bx = pad + i * sw;
+    const cx = bx + sw / 2;
+
+    // Box
+    ctx.fillStyle = s.color + '18';
+    ctx.strokeStyle = s.color + 'aa';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.roundRect(bx + 4, boxY, sw - 8, boxH, 8); ctx.fill(); ctx.stroke();
+
+    // Icon
+    ctx.fillStyle = s.color;
+    ctx.font = `bold 18px system-ui`;
+    ctx.textAlign = 'center';
+    ctx.fillText(s.icon, cx, boxY + 24);
+
+    // Title
+    ctx.font = 'bold 11px system-ui';
+    ctx.fillText(s.title, cx, boxY + 44);
+
+    // Sub lines
+    ctx.fillStyle = '#94a3b8'; ctx.font = '9px system-ui';
+    ctx.fillText(s.line1, cx, boxY + 60);
+    ctx.fillText(s.line2, cx, boxY + 74);
+
+    // Output label
+    ctx.fillStyle = s.color + 'cc'; ctx.font = '8px monospace';
+    ctx.fillText(
+      i === 0 ? 'e.g. 0.73V' :
+      i === 1 ? `e.g. 0.61` :
+      i === 2 ? `e.g. lvl ${Math.pow(2,bitDepth)-2}` :
+      i === 3 ? `e.g. ${(Math.pow(2,bitDepth)-2).toString(2).padStart(bitDepth,'0')}` :
+               `${bitDepth}-bit × ${sampleRate}Hz`,
+      cx, boxY + boxH - 6
+    );
+
+    ctx.textAlign = 'left';
+
+    // Arrow to next
+    if(i < stages.length - 1) {
+      const ax = bx + sw - 4;
+      ctx.strokeStyle = '#334155'; ctx.lineWidth = 1.5;
+      ctx.setLineDash([3,3]);
+      ctx.beginPath(); ctx.moveTo(ax, arrowY); ctx.lineTo(ax + 8, arrowY); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = '#475569';
+      ctx.beginPath(); ctx.moveTo(ax+8, arrowY); ctx.lineTo(ax+4, arrowY-4); ctx.lineTo(ax+4, arrowY+4); ctx.closePath(); ctx.fill();
+    }
+  });
+}
+
+function updateBinaryGrid() {
+  const N = sampleRate;
+  const bits = bitDepth;
+  const grid = document.getElementById('binaryGrid');
+  grid.innerHTML = '';
+
+  const maxShow = Math.min(N, 12);
+  for(let i = 0; i <= maxShow; i++) {
+    const t = i / N;
+    const v = wave(t);
+    const qv = quantize(v, bits);
+    const idx = getLevelIndex(v, bits);
+    const bin = getBinaryStr(v, bits);
+    const isSelected = (i === selectedSample);
+
+    const cell = document.createElement('div');
+    cell.className = 'bit-cell';
+    cell.style.cursor = 'pointer';
+    if(isSelected) {
+      cell.style.borderColor = '#f59e0b';
+      cell.style.background = 'rgba(245,158,11,0.08)';
+    }
+
+    // Build binary with coloured bits
+    const bitsHtml = bin.split('').map((d,b) => {
+      const exp = bits - 1 - b;
+      const active = d === '1';
+      return `<span title="2^${exp}=${Math.pow(2,exp)}" style="
+        display:inline-block;width:18px;height:18px;line-height:18px;
+        text-align:center;border-radius:3px;margin:1px;font-family:monospace;font-size:11px;font-weight:bold;
+        background:${active ? (isSelected?'#f59e0b':'#4ade80') : 'transparent'};
+        color:${active ? '#0f172a' : '#475569'};
+        border:1px solid ${active ? (isSelected?'#f59e0b':'#4ade80') : '#334155'};
+      ">${d}</span>`;
+    }).join('');
+
+    cell.innerHTML = `
+      <div class="sample-val" style="font-size:0.72rem">S${i} · ${v.toFixed(2)}</div>
+      <div style="font-size:0.65rem;color:#475569;margin:2px 0">↓ round</div>
+      <div class="quant-val" style="font-size:0.8rem">L${idx}</div>
+      <div style="font-size:0.65rem;color:#475569;margin:2px 0">↓ binary</div>
+      <div>${bitsHtml}</div>
+    `;
+
+    cell.addEventListener('click', () => {
+      selectedSample = i;
+      updateBinaryGrid();
+      drawStep3();
+    });
+
+    grid.appendChild(cell);
+  }
+
+  if(N > 12) {
+    const more = document.createElement('div');
+    more.className = 'bit-cell';
+    more.style.color = '#475569';
+    more.innerHTML = `<div style="font-size:1.2rem">…</div><div style="font-size:0.75rem">${N-12} more</div>`;
+    grid.appendChild(more);
+  }
+}
+
+function updateStats() {
+  document.getElementById('s_sr').textContent = sampleRate;
+  document.getElementById('s_bd').textContent = bitDepth;
+  document.getElementById('s_bps').textContent = sampleRate * bitDepth;
+  document.getElementById('s_lv').textContent = Math.pow(2, bitDepth);
+}
+
+function redrawAll() {
+  drawStep0();
+  drawStep1();
+  drawStep2();
+  drawStep3();
+  drawPipeline();
+  updateBinaryGrid();
+  updateStats();
+}
+
+// Slider listeners
+document.getElementById('sampleRate').addEventListener('input', function() {
+  sampleRate = +this.value;
+  selectedSample = 0;
+  document.getElementById('srVal').textContent = sampleRate;
+  drawStep1(); drawStep3(); updateBinaryGrid(); updateStats();
+});
+
+document.getElementById('bitDepth').addEventListener('input', function() {
+  bitDepth = +this.value;
+  selectedSample = 0;
+  document.getElementById('bdVal').textContent = bitDepth + '-bit';
+  document.getElementById('levelsVal').textContent = Math.pow(2, bitDepth);
+  drawStep2(); drawStep3(); updateBinaryGrid(); updateStats();
+});
+
+// Init on load
+window.addEventListener('load', () => {
+  // Slight delay to let layout settle
+  setTimeout(redrawAll, 50);
+});
+window.addEventListener('resize', redrawAll);
+</script>
+</body>
+</html>
